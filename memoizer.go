@@ -1,7 +1,6 @@
 package memoizer
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -27,7 +26,7 @@ func NewMemoizer() *Memoizer {
 }
 
 // Memoize memoizes the result of a function call.
-func (m *Memoizer) Memoize(ctx context.Context, function func(context.Context) (interface{}, error), keys ...interface{}) (interface{}, error) {
+func (m *Memoizer) Memoize(function func() (interface{}, error), keys ...interface{}) (interface{}, error) {
 	keySlc := []string{}
 	for _, v := range keys {
 		keySlc = append(keySlc, fmt.Sprintf("%v", v))
@@ -42,7 +41,7 @@ func (m *Memoizer) Memoize(ctx context.Context, function func(context.Context) (
 	m.mutex.RUnlock()
 
 	value, err, _ := m.singleflight.Do(key, func() (interface{}, error) {
-		value, err := function(ctx)
+		value, err := function()
 		m.mutex.Lock()
 		m.cache[key] = memoizedResult{value: value, err: err}
 		m.mutex.Unlock()
