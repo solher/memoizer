@@ -2,6 +2,8 @@ package memoizer
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"sync"
 
 	"golang.org/x/sync/singleflight"
@@ -25,13 +27,20 @@ func NewMemoizer() *Memoizer {
 }
 
 // Memoize memoizes the result of a function call.
-func (m *Memoizer) Memoize(ctx context.Context, key string, function func(context.Context) (interface{}, error)) (interface{}, error) {
+func (m *Memoizer) Memoize(ctx context.Context, function func(context.Context) (interface{}, error), keys ...interface{}) (interface{}, error) {
+	keySlc := []string{}
+	for _, v := range keys {
+		keySlc = append(keySlc, fmt.Sprintf("%v", v))
+	}
+	key := strings.Join(keySlc, "|")
+
 	m.mutex.RLock()
 	if res, ok := m.cache[key]; ok {
 		m.mutex.RUnlock()
 		return res.value, res.err
 	}
 	m.mutex.RUnlock()
+
 	value, err, _ := m.singleflight.Do(key, func() (interface{}, error) {
 		value, err := function(ctx)
 		m.mutex.Lock()
